@@ -34,7 +34,7 @@ schema_write_file = {
                     "type": "string",
                     "description": "File path to write to, relative to the working directory. Missing intermediate directories are created automatically ",
                 },
-                "contenet": {
+                "content": {
                     "type": "string",
                     "description": "The contents to be written to the file"
             }
