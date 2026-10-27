@@ -2,7 +2,7 @@ import os
 import json
 import argparse
 from prompt import system_prompt
-from call_functions import available_functions
+from call_functions import available_functions, call_function 
 from openai import OpenAI
 from dotenv import load_dotenv
 
@@ -37,7 +37,15 @@ message = response.choices[0].message
 if message.tool_calls:
     for tool_call in message.tool_calls:
         function_args = json.loads(tool_call.function.arguments or "{}")
-        print(f"Calling function: {tool_call.function.name}({function_args})")
+        result_message = call_function(tool_call, args.verbose)
+        
+        if result_message["content"] == "":
+            raise Exception("content cannot be empty")
+
+        if args.verbose:
+            print(f"-> {result_message['content']}")
+
+        
 
 if args.verbose:
     print(f"User prompt: {args.user_prompt}")
