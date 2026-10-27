@@ -1,5 +1,5 @@
 import os
-import json
+import sys
 import argparse
 from prompt import system_prompt
 from call_functions import available_functions, call_function 
@@ -24,32 +24,37 @@ messages = [
     {"role": "user", "content": args.user_prompt}
 ]
 
-response = client.chat.completions.create(
-    model="openrouter/free",
-    messages=messages,
-    tools=available_functions
-)
+# Agent loop
+for _ in range(20):
+    response = client.chat.completions.create(
+        model="openrouter/free",
+        messages=messages,
+        tools=available_functions
+    )
 
-if response.usage is None:
-    raise RuntimeError("Request failed")
+    if response.usage is None:
+        raise RuntimeError("Request failed")
 
-message = response.choices[0].message
-if message.tool_calls:
-    for tool_call in message.tool_calls:
-        function_args = json.loads(tool_call.function.arguments or "{}")
-        result_message = call_function(tool_call, args.verbose)
-        
-        if result_message["content"] == "":
-            raise Exception("content cannot be empty")
+    message = response.choices[0].message
+    if message.tool_calls:
+        for tool_call in message.tool_calls:
+            result_message = call_function(tool_call, args.verbose)
+            messages.append(result_message)
+            
+            if not result_message["content"]: 
+                raise Exception("content cannot be empty")
+
+            if args.verbose:
+                print(f"-> {result_message['content']}")
+    else:
+        if message.content:
+            print(message.content)
 
         if args.verbose:
-            print(f"-> {result_message['content']}")
-
-        
-
-if args.verbose:
-    print(f"User prompt: {args.user_prompt}")
-    print(f"Prompt tokens: {response.usage.prompt_tokens}")
-    print(f"Response tokens: {response.usage.completion_tokens}")
-print(response.choices[0].message.content)
-
+            print(f"User prompt: {args.user_prompt}")
+            print(f"Prompt tokens: {response.usage.prompt_tokens}")
+            print(f"Response tokens: {response.usage.completion_tokens}")
+        break
+else:
+    print("Error: Agent reached max step limit")
+    sys.exit(1)
